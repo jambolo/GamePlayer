@@ -30,6 +30,8 @@ public:
 
     //! Returns a fingerprint for this state.
     //!
+    //! @return The fingerprint of the state
+    //!
     //! @note   The fingerprint is assumed to be at least statistically unique.
     //! @note   This function must be overridden.
     virtual uint64_t fingerprint() const = 0;
@@ -44,6 +46,8 @@ public:
     virtual void generateResponses(int depth, std::vector<GamePlayer::GameState *> & responses) const = 0;
 
     //! Returns the ID of the player that will respond to this state
+    //!
+    //! @return The ID of the player that responds to this state
     //!
     //! @note   This function must be overridden.
     virtual PlayerId whoseTurn() const = 0;

@@ -26,6 +26,8 @@ public:
     //!
     //! @param  state   State to be evaluated
     //!
+    //! @return The value of the state
+    //!
     //! @note   This function must be overridden
     virtual float evaluate(GameState const & state) const = 0;
 
@@ -34,6 +36,8 @@ public:
     //! The returned value must be invariant. It must be higher than any other non-winning value returned by evaluate(), but it
     //! must be comparably less than std::numeric_limits<float>::max().
     //!
+    //! @return The value of a state in which the first player has won
+    //!
     //! @note   This function must be overridden
     virtual float firstPlayerWins() const = 0;
 
@@ -41,6 +45,8 @@ public:
     //!
     //! The returned value must be invariant. It must be lower than any other non-wining value returned by evaluate(), but it
     //! must be comparably greater than -std::numeric_limits<float>::max().
+    //!
+    //! @return The value of a state in which the second player has won
     //!
     //! @note   This function must be overridden
     virtual float secondPlayerWins() const = 0;
