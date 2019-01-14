@@ -7,6 +7,10 @@ namespace GamePlayer
 {
 class GameState;
 
+//! An abstract static evaluation function.
+//!
+//! StaticEvaluator is used by GameTree, and must be sub-classed.
+
 class StaticEvaluator
 {
 public:

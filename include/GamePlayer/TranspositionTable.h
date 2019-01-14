@@ -11,7 +11,7 @@ namespace GamePlayer
 {
 class GameState;
 
-//! @brief A "transposition table" is a map of game state values referenced by a fingerprint.
+//! A map of game state values referenced by the states' fingerprints.
 //!
 //! A game state can be the result of different sequences of the same (or a different) set of moves. This technique is used to
 //! cache the value of a game state regardless of the moves used to reach it, thus the name "transposition" table. The purpose of
@@ -26,10 +26,11 @@ class TranspositionTable
 {
 public:
 
-    static int constexpr INDEX_SIZE = 19;               //!< Number of bits in the index
+    static int constexpr INDEX_SIZE = 19;               //!< Number of bits in the table's index
     static int constexpr SIZE       = 1 << INDEX_SIZE;  //!< Number of entries in the table
     static int constexpr MAX_AGE    = 1;                //!< Entries not referenced in this many turns are removed by age()
 
+    //! Constructor
     TranspositionTable();
 
     //! Returns the stored value and quality of the given state

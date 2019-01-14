@@ -11,6 +11,9 @@
 
 namespace GamePlayer
 {
+
+//! An abstract game state.
+
 class GameState
 {
 public:
@@ -18,7 +21,7 @@ public:
     GameState()          = default;
     virtual ~GameState() = default;
 
-    //!< IDs of the two players
+    //! IDs of the players.
     enum class PlayerId
     {
         FIRST  = 0,
@@ -31,21 +34,21 @@ public:
     //! @note   This function must be overridden.
     virtual uint64_t fingerprint() const = 0;
 
-    //! Generates a list of responses to this state by the next player.
+    //! Generates a list of all possible responses to this state.
     //!
     //! @param  depth       The depth of the current ply
     //! @param  responses   The list of returned responses
     //!
-    //! @note   The caller gains ownership of the states.
+    //! @note   The caller gains ownership of the returned states.
     //! @note   This function must be overridden.
     virtual void generateResponses(int depth, std::vector<GamePlayer::GameState *> & responses) const = 0;
 
-    //! Returns the ID of the player that responds to this state
+    //! Returns the ID of the player that will respond to this state
     //!
     //! @note   This function must be overridden.
     virtual PlayerId whoseTurn() const = 0;
 
-    //!< The expected response to this state, or nullptr if not determined
+    //! The expected response to this state, or nullptr if not yet determined
     std::shared_ptr<GameState> response_;
 };
 } // namespace GamePlayer

@@ -15,19 +15,28 @@ class GameState;
 class StaticEvaluator;
 class TranspositionTable;
 
+//! An game tree search implementation using min-max strategy, alpha-beta pruning, and a transposition table.
+
 class GameTree
 {
 public:
-
+    //! Constructor.
+    //! 
+    //! @param 	tt          A transposition table to be used in a search. The table is assumed to be persistent.
+    //! @param 	sef         The static evaluation function
+    //! @param 	maxDepth    The maximum number of plies to search
     GameTree(std::shared_ptr<TranspositionTable> tt, std::shared_ptr<StaticEvaluator> sef, int maxDepth);
 
-    //! Searches for the best response and returns it
+    //! Searches for the best response to the given state.
+    //!
+    //! @param  s0  The current state
+    //!
+    //! @return     The chosen response is returned in s0->response_.
     void findBestResponse(std::shared_ptr<GameState> & s0) const;
 
 #if defined(ANALYSIS_GAME_TREE)
 
-    // Analysis data for the last move
-
+    //! Analysis data relevant to the game tree's operation
     struct AnalysisData
     {
         static size_t constexpr MAX_DEPTH = 10; // Maximum number of plies tracked
@@ -45,6 +54,7 @@ public:
         nlohmann::json toJson() const;
     };
 
+    //! Analysis data for the last move
     mutable AnalysisData analysisData_;
 
 #endif  // defined(ANALYSIS_GAME_TREE)
