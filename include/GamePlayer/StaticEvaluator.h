@@ -15,6 +15,9 @@ class StaticEvaluator
 {
 public:
 
+    StaticEvaluator() = default;
+    virtual ~StaticEvaluator() = default;
+    
     //! Returns a value for the given state.
     //!
     //! A higher value must be better for the first player and a lower value must be better for the second player. The returned

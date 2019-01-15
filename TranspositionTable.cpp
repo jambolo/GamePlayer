@@ -1,6 +1,6 @@
 #include "GamePlayer/TranspositionTable.h"
 
-#include "GamePlayer/Gamestate.h"
+#include "GamePlayer/GameState.h"
 
 #include <nlohmann/json.hpp>
 
