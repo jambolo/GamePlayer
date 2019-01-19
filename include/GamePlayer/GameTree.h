@@ -72,11 +72,16 @@ private:
     };
     using NodeList = std::vector<GameTree::Node>;
 
+#if defined(FEATURE_NEGAMAX)
+    // Sets the value of the node to the value of the best response
+    void nextPly(Node * node, float playerFactor, float alpha, float beta, int depth) const;
+#else // defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of the first player's best response
     void firstPlayerSearch(Node * node, float alpha, float beta, int depth) const;
 
     // Sets the value of the node to the value of the second player's best response
     void secondPlayerSearch(Node * node, float alpha, float beta, int depth) const;
+#endif // defined(FEATURE_NEGAMAX)
 
     // Generates a list of responses to the given node
     void generateResponses(Node const * node, int depth, NodeList & responses) const;
