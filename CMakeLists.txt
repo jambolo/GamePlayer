@@ -1,11 +1,13 @@
-cmake_minimum_required (VERSION 3.4)
+cmake_minimum_required (VERSION 3.10)
 project(GamePlayer CXX)
 
-option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests for ${PROJECT_NAME} if BUILD_TESTING is ON" FALSE)
+#set(${PROJECT_NAME}_VERSION_MAJOR 0)
+#set(${PROJECT_NAME}_VERSION_MINOR 1)
+#configure_file("${PROJECT_SOURCE_DIR}/Version.h.in" "${PROJECT_BINARY_DIR}/Version.h")
+
 option(BUILD_SHARED_LIBS "Build libraries as DLLs" FALSE)
 
 set(${PROJECT_NAME}_DOXYGEN_OUTPUT_DIRECTORY "" CACHE PATH "Doxygen output directory (empty to disable)")
-
 if(${PROJECT_NAME}_DOXYGEN_OUTPUT_DIRECTORY)
     find_package(Doxygen)
     if(DOXYGEN_FOUND)
@@ -49,6 +51,17 @@ message(STATUS "ANALYSIS_GAME_TREE                                 : ${ANALYSIS_
 
 message(STATUS "DEBUG_GAME_TREE_NODE_INFO                          : ${DEBUG_GAME_TREE_NODE_INFO}")
 
+find_package(nlohmann_json REQUIRED)
+
+set(PUBLIC_INCLUDE_PATHS
+    include
+)
+
+set(PRIVATE_INCLUDE_PATHS
+    .
+	include/GamePlayer
+)
+
 set(SOURCES
     include/GamePlayer/GameState.h
     include/GamePlayer/GameTree.h
@@ -58,14 +71,7 @@ set(SOURCES
     GameTree.cpp
     TranspositionTable.cpp
 )
-
-set(PRIVATE_INCLUDE_PATHS
-    .
-)
-
-set(PUBLIC_INCLUDE_PATHS
-    include
-)
+source_group(Sources FILES ${SOURCES})
 
 add_library(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PUBLIC_INCLUDE_PATHS} PRIVATE ${PRIVATE_INCLUDE_PATHS} )
@@ -121,9 +127,10 @@ if(DEBUG_GAME_TREE_NODE_INFO)
     target_compile_definitions(${PROJECT_NAME} PUBLIC DEBUG_GAME_TREE_NODE_INFO=1)
 endif()
 
-source_group(Sources FILES ${SOURCES})
-
-if(${PROJECT_NAME}_BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(test)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    message(STATUS "Testing is enabled. Turn on BUILD_TESTING to build tests.")
+    if(BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
 endif()
