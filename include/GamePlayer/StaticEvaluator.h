@@ -15,7 +15,6 @@ class StaticEvaluator
 {
 public:
 
-    StaticEvaluator() = default;
     virtual ~StaticEvaluator() = default;
     
     //! Returns a value for the given state.

@@ -15,13 +15,15 @@ class GameState;
 //!
 //! A game state can be the result of different sequences of the same (or a different) set of moves. This technique is used to
 //! cache the value of a game state regardless of the moves used to reach it, thus the name "transposition" table. The purpose of
-//! the "transposition" table has been extended to become simply a cache game state values, so it is more aptly named
+//! the "transposition" table has been extended to become simply a cache of game state values, so it is more aptly named
 //! "game state value cache" -- but the old name persists.
 //!
 //! As a speed and memory optimization in this implementation, slots in the table are not unique to the state being stored, and a
 //! value may be overwritten when a new value is added. A value is overwritten only when its "quality" is less than or equal to the
 //! "quality" of the value being added.
-
+//!
+//! @note    The fingerprint is assumed to be random and uniformly distibuted.
+    
 class TranspositionTable
 {
 public:

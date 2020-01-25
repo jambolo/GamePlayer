@@ -18,7 +18,6 @@ class GameState
 {
 public:
 
-    GameState()          = default;
     virtual ~GameState() = default;
 
     //! IDs of the players.
@@ -32,7 +31,7 @@ public:
     //!
     //! @return The fingerprint of the state
     //!
-    //! @note   The fingerprint is assumed to be at least statistically unique.
+    //! @note   The fingerprint is assumed to be statistically unique.
     //! @note   This function must be overridden.
     virtual uint64_t fingerprint() const = 0;
 

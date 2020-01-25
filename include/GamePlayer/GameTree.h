@@ -15,7 +15,7 @@ class GameState;
 class StaticEvaluator;
 class TranspositionTable;
 
-//! An game tree search implementation using min-max strategy, alpha-beta pruning, and a transposition table.
+//! A game tree search implementation using min-max strategy, alpha-beta pruning, and a transposition table.
 
 class GameTree
 {
@@ -97,12 +97,14 @@ private:
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
     void printStateInfo(GameState const & state, int depth, float alpha, float beta);
 #endif
+
+    // Used to sort nodes by value
     static bool descendingSorter(Node const & a, Node const & b);
     static bool ascendingSorter(Node const & a, Node const & b);
 
     int maxDepth_;                                              // How deep to search
     std::shared_ptr<TranspositionTable> transpositionTable_;    // Transposition table (persistent)
-    std::shared_ptr<StaticEvaluator> staticEvaluator_;          // Transposition table (persistent)
+    std::shared_ptr<StaticEvaluator> staticEvaluator_;          // Static evaluator (persistent)
 };
 } // namespace GamePlayer
 
