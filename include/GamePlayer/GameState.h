@@ -1,7 +1,7 @@
-#pragma once
-
 #if !defined(GAMEPLAYER_GAMESTATE_H)
 #define GAMEPLAYER_GAMESTATE_H
+
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -11,7 +11,6 @@
 
 namespace GamePlayer
 {
-
 //! An abstract game state.
 
 class GameState
@@ -29,20 +28,9 @@ public:
 
     //! Returns a fingerprint for this state.
     //!
-    //! @return The fingerprint of the state
-    //!
     //! @note   The fingerprint is assumed to be statistically unique.
     //! @note   This function must be overridden.
     virtual uint64_t fingerprint() const = 0;
-
-    //! Generates a list of all possible responses to this state.
-    //!
-    //! @param  depth       The depth of the current ply
-    //! @param  responses   The list of returned responses
-    //!
-    //! @note   The caller gains ownership of the returned states.
-    //! @note   This function must be overridden.
-    virtual void generateResponses(int depth, std::vector<GamePlayer::GameState *> & responses) const = 0;
 
     //! Returns the ID of the player that will respond to this state
     //!

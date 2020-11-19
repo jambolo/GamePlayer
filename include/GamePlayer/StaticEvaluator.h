@@ -1,7 +1,7 @@
-#pragma once
-
 #if !defined(GAMEPLAYER_STATICEVALUATOR_H)
 #define GAMEPLAYER_STATICEVALUATOR_H
+
+#pragma once
 
 namespace GamePlayer
 {
@@ -16,7 +16,7 @@ class StaticEvaluator
 public:
 
     virtual ~StaticEvaluator() = default;
-    
+
     //! Returns a value for the given state.
     //!
     //! A higher value must be better for the first player and a lower value must be better for the second player. The returned

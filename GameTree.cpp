@@ -35,10 +35,13 @@ bool shouldDoQuiescentSearch(float previousValue, float thisValue)
 
 namespace GamePlayer
 {
-GameTree::GameTree(std::shared_ptr<TranspositionTable> tt, std::shared_ptr<StaticEvaluator> sef, int maxDepth)
+GameTree::GameTree(std::shared_ptr<TranspositionTable> tt,
+                   std::shared_ptr<StaticEvaluator> sef,
+                   ResponseGenerator rg, int maxDepth)
     : maxDepth_(maxDepth)
     , transpositionTable_(tt)
     , staticEvaluator_(sef)
+    , responseGenerator_(rg)
 {
 }
 
@@ -51,12 +54,12 @@ void GameTree::findBestResponse(std::shared_ptr<GameState> & s0) const
         nextPly(&root, 1.0f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
     else
         nextPly(&root, -1.0f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-#else // defined(FEATURE_NEGAMAX)
+#else   // defined(FEATURE_NEGAMAX)
     if (s0->whoseTurn() == GameState::PlayerId::FIRST)
         firstPlayerSearch(&root, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
     else
         secondPlayerSearch(&root, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-#endif // defined(FEATURE_NEGAMAX)
+#endif  // defined(FEATURE_NEGAMAX)
 
 #if defined(ANALYSIS_GAME_TREE)
     analysisData_.value = root.value;
@@ -78,8 +81,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
     // occur early.
     // Note: Preliminary values of the generated states are retrieved from the transposition table or computed by
     // the static evaluation function.
-    NodeList responses;
-    generateResponses(node, depth, responses);
+    NodeList responses = generateResponses(node, depth);
 
     // Sort from highest to lowest
     std::sort(responses.begin(), responses.end(), descendingSorter);
@@ -91,7 +93,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
     for (auto & response : responses)
     {
         // If the game is not over, then let's see how the second player responds (updating the value of this response)
-        if (response.value != staticEvaluator_->firstPlayerWins()*playerFactor)
+        if (response.value != staticEvaluator_->firstPlayerWins() * playerFactor)
         {
             // The quality of a value is basically the depth of the search tree below it. The reason for checking the quality is
             // that some of the responses have not been fully searched. If the quality of the preliminary value is not as good as
@@ -179,8 +181,7 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
     // occur early.
     // Note: Preliminary values of the generated states are retrieved from the transposition table or computed by
     // the static evaluation function.
-    NodeList responses;
-    generateResponses(node, depth, responses);
+    NodeList responses = generateResponses(node, depth);
 
     // Sort from highest to lowest
     std::sort(responses.begin(), responses.end(), descendingSorter);
@@ -259,7 +260,7 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
     // because the search is not complete. Also, the value is stored only if its quality is better than the quality
     // of the value in the table.
     if (!pruned)
-        transpositionTable_->update(*node->state, node->value, node->quality);
+        transpositionTable_->update(node->state->fingerprint(), node->value, node->quality);
 
     // Release all generated states
 }
@@ -277,8 +278,7 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
     // occur early.
     // Note: Preliminary values of the generated states are retrieved from the transposition table or computed by
     // the static evaluation function.
-    NodeList responses;
-    generateResponses(node, depth, responses);
+    NodeList responses = generateResponses(node, depth);
 
     // Sort from lowest to highest
     std::sort(responses.begin(), responses.end(), ascendingSorter);
@@ -362,15 +362,14 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
     // because the search is not complete. Also, the value is stored only if its quality is better than the quality
     // of the value in the table.
     if (!pruned)
-        transpositionTable_->update(*node->state, node->value, node->quality);
+        transpositionTable_->update(node->state->fingerprint(), node->value, node->quality);
 }
 
 #endif // defined(FEATURE_NEGAMAX)
 
-void GameTree::generateResponses(Node const * node, int depth, NodeList & nodes) const
+GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) const
 {
-    std::vector<GameState *> responses;
-    node->state->generateResponses(depth,responses);
+    std::vector<GameState *> responses = responseGenerator_(*node->state, depth);
 
 #if defined(ANALYSIS_GAME_TREE)
     if (depth < GamePlayer::GameTree::AnalysisData::MAX_DEPTH)
@@ -381,14 +380,15 @@ void GameTree::generateResponses(Node const * node, int depth, NodeList & nodes)
     rv.resize(responses.size());
 
     // Create a list of response nodes
-    std::transform(responses.begin(), responses.end(), rv.begin(), [this, depth] (GameState * state) -> Node {
+    std::transform(responses.begin(), responses.end(), rv.begin(), [this, depth] (GameState * state)
+                   {
                        float value;
                        int quality;
                        getValue(*state, depth, &value, &quality);
                        return Node{ std::shared_ptr<GameState>(state), value, quality };
                    });
 
-    nodes = std::move(rv);
+    return rv;
 }
 
 void GameTree::getValue(GameState const & state, int depth, float * pValue, int * pQuality) const
@@ -401,8 +401,13 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
     // lookup is so much faster than the SEF.
 
     // If it is in the T-table then use that value, otherwise compute the value using SEF.
-    if (transpositionTable_->check(state, pValue, pQuality))
+    std::optional<TranspositionTable::CheckResult> result = transpositionTable_->check(state.fingerprint());
+    if (result)
+    {
+        *pValue   = result->first;
+        *pQuality = result->second;
         return;
+    }
 
 #if defined(ANALYSIS_GAME_TREE)
     if (depth < GamePlayer::GameTree::AnalysisData::MAX_DEPTH)
@@ -417,6 +422,9 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
     ASSERT(state.value_ == staticEvaluator_->evaluate(*pState));
 #endif
 
+    *pValue   = state.value_;
+    *pQuality = SEF_QUALITY;
+
 #else   // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
 
     float value = staticEvaluator_->evaluate(state);
@@ -427,7 +435,7 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
 #endif  // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
 
     // Save the value of the state in the T-table
-    transpositionTable_->update(state, *pValue, *pQuality);
+    transpositionTable_->update(state.fingerprint(), *pValue, *pQuality);
 }
 
 #if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)

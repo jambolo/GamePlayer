@@ -1,7 +1,5 @@
 #include "GamePlayer/TranspositionTable.h"
 
-#include "GamePlayer/GameState.h"
-
 #include <nlohmann/json.hpp>
 
 #include <cassert>
@@ -10,7 +8,12 @@ using json = nlohmann::json;
 
 namespace GamePlayer
 {
-TranspositionTable::TranspositionTable()
+//! @param  size    Number of entries in the table
+//! @param  maxAge  Maximum age of entries allowed in the table
+
+TranspositionTable::TranspositionTable(size_t size, int maxAge)
+    : table_(size)
+    , maxAge_(maxAge)
 {
     // Invalidate all entries in the table
     for (auto & e : table_)
@@ -22,38 +25,28 @@ TranspositionTable::TranspositionTable()
 //! This function returns the value of a state if the value is stored in the table. Otherwise, false is returned and the return
 //! values are not modified.
 //!
-//! @param  state               State to be checked for
-//! @param  pReturnedValue      Where to return the state's value if not NULL (default: NULL)
-//! @param  pReturnedQuality    Where to return the value's quality if not NULL (default: NULL)
+//! @param  fingerprint     Fingerprint of state to be checked for
 //!
-//! @return true, if the state's value was found
+//! @return optional CheckResult
 
-bool TranspositionTable::check(GameState const & state,
-                               float *           pReturnedValue /* = NULL*/,
-                               int *             pReturnedQuality /* = NULL*/) const
+std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_t fingerprint) const
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.checkCount;
 #endif
 
-    uint64_t hash = state.fingerprint();
-    assert(hash != Entry::UNUSED_ENTRY);
-    Entry const & entry = find(hash);
+    assert(fingerprint != Entry::UNUSED_ENTRY);
+    Entry const & entry = find(fingerprint);
 
     // The state is found if the fingerprints are the same.
 
-    if (entry.fingerprint_ == hash)
+    if (entry.fingerprint_ == fingerprint)
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
 #endif
-
-        if (pReturnedValue)
-            *pReturnedValue = entry.value_;
-        if (pReturnedQuality)
-            *pReturnedQuality = entry.q_;
         entry.age_ = 0;  // Reset age
-        return true;
+        return std::make_pair(entry.value_, entry.q_);
     }
     else
     {
@@ -61,32 +54,27 @@ bool TranspositionTable::check(GameState const & state,
         if (entry.fingerprint_ != Entry::UNUSED_ENTRY)
             ++analysisData_.collisionCount;
 #endif
-        return false;
+        // Not found
+        return {};
     }
 }
 
-//! This function returns the value of a state if the value is stored in the table, but only if the stored value's quality is above
-//! the specified minimum. Otherwise, false is returned and the return values are not modified.
+//! This function returns the value of a state if the value is stored in the table and its quality is above the
+//! specified minimum. Otherwise, nothing is returned.
 //!
-//! @param  state               State to be checked for
-//! @param  minQ                Minimum quality
-//! @param  pReturnedValue      Where to return the state's value if not NULL (default: NULL)
-//! @param  pReturnedQuality    Where to return the value's quality if not NULL (default: NULL)
+//! @param  fingerprint     Fingerprint of state to be checked for
+//! @param  minQ            Minimum quality
 //!
-//! @return true, if the state was found and its value's quality is higher than the minimum
+//! @return optional CheckResult
 
-bool TranspositionTable::check(GameState const & state,
-                               int               minQ,
-                               float *           pReturnedValue /* = NULL*/,
-                               int *             pReturnedQuality /* = NULL*/) const
+std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_t fingerprint, int minQ) const
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.checkCount;
 #endif
 
-    uint64_t hash = state.fingerprint();
-    assert(hash != Entry::UNUSED_ENTRY);
-    Entry const & entry = find(hash);
+    assert(fingerprint != Entry::UNUSED_ENTRY);
+    Entry const & entry = find(fingerprint);
 
     // A hit occurs if the states are the same, and the minimum quality is <= the quality of the stored state-> The
     // reason for the quality check is that if the stored quality is less, then we aren't going to want the value
@@ -94,21 +82,14 @@ bool TranspositionTable::check(GameState const & state,
 
     bool hit = false;
 
-    if (entry.fingerprint_ == hash)
+    if (entry.fingerprint_ == fingerprint)
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
 #endif
-
-        if (entry.q_ >= minQ)
-        {
-            hit = true;
-            if (pReturnedValue)
-                *pReturnedValue = entry.value_;
-            if (pReturnedQuality)
-                *pReturnedQuality = entry.q_;
-        }
         entry.age_ = 0;         // Reset age
+        if (entry.q_ >= minQ)
+            return std::make_pair(entry.value_, entry.q_);
     }
     else
     {
@@ -118,31 +99,32 @@ bool TranspositionTable::check(GameState const & state,
 #endif
     }
 
-    return hit;
+    // Not found or quality was too low
+    return {};
 }
 
-//! @param  state   State whose value is to be stored
-//! @param  value   Value to be stored
-//! @param  quality Quality of the value
+//! @param  fingerprint     Fingerprint of state to be stored
+//! @param  value           Value to be stored
+//! @param  quality         Quality of the value
 
-void TranspositionTable::update(GameState const & state, float value, int quality)
+void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
 #endif
 
-    uint64_t hash = state.fingerprint();
-    assert(hash != Entry::UNUSED_ENTRY);
-    Entry & entry = find(hash);
+    assert(fingerprint != Entry::UNUSED_ENTRY);
+    Entry & entry = find(fingerprint);
 
     bool isUnused = (entry.fingerprint_ == Entry::UNUSED_ENTRY);
 
-    // If the entry is unused or if the new quality >= the stored quality, then store the new value. Note: It is assumed to be
-    // better to replace values of equal quality in order to dispose of old entries that may no longer be relevant.
+    // If the entry is unused or if the new quality >= the stored quality, then store the new value. Note: It is assumed
+    // to be better to replace values of equal quality in order to dispose of old entries that may no longer be
+    // relevant.
 
     if (isUnused || (quality >= entry.q_))
     {
-        entry.fingerprint_ = hash;
+        entry.fingerprint_ = fingerprint;
         entry.value_       = value;
         entry.q_           = quality;
         entry.age_         = 0; // Reset age
@@ -153,7 +135,7 @@ void TranspositionTable::update(GameState const & state, float value, int qualit
 
         if (isUnused)
             ++analysisData_.usage;
-        else if (entry.fingerprint_ == hash)
+        else if (entry.fingerprint_ == fingerprint)
             ++analysisData_.refreshed;
         else
             ++analysisData_.overwritten;
@@ -168,22 +150,21 @@ void TranspositionTable::update(GameState const & state, float value, int qualit
     }
 }
 
-//! @param  state   State whose value is to be stored
-//! @param  value   Value to be stored
-//! @param  quality Quality of the value
+//! @param  fingerprint     Fingerprint of state to be stored
+//! @param  value           Value to be stored
+//! @param  quality         Quality of the value
 
-void TranspositionTable::set(GameState const & state, float value, int quality)
+void TranspositionTable::set(uint64_t fingerprint, float value, int quality)
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
 #endif
 
-    uint64_t hash = state.fingerprint();
-    assert(hash != Entry::UNUSED_ENTRY);
-    Entry & entry = find(hash);
+    assert(fingerprint != Entry::UNUSED_ENTRY);
+    Entry & entry = find(fingerprint);
 
     // Store the state, value and quality
-    entry.fingerprint_ = hash;
+    entry.fingerprint_ = fingerprint;
     entry.value_       = value;
     entry.q_           = quality;
     entry.age_         = 0; // Reset age
@@ -194,7 +175,7 @@ void TranspositionTable::set(GameState const & state, float value, int quality)
 
     if (entry.fingerprint_ == Entry::UNUSED_ENTRY)
         ++analysisData_.usage;
-    else if (entry.fingerprint_ == hash)
+    else if (entry.fingerprint_ == fingerprint)
         ++analysisData_.refreshed;
     else
         ++analysisData_.overwritten;
@@ -202,8 +183,8 @@ void TranspositionTable::set(GameState const & state, float value, int quality)
 #endif  // defined(ANALYSIS_TRANSPOSITION_TABLE)
 }
 
-//! The T-table is persistent. So in order to gradually dispose of entries that are no longer relevant, entries that have not been
-//! referenced for a while are removed.
+//! The T-table is persistent. So in order to gradually dispose of entries that are no longer relevant, entries that
+//! have not been referenced for a while are removed.
 
 void TranspositionTable::age()
 {
@@ -212,7 +193,7 @@ void TranspositionTable::age()
         if (entry.fingerprint_ != Entry::UNUSED_ENTRY)
         {
             ++entry.age_;
-            if (entry.age_ > MAX_AGE)
+            if (entry.age_ > maxAge_)
             {
                 entry.fingerprint_ = Entry::UNUSED_ENTRY;
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
