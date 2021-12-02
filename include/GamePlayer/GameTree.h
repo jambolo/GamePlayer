@@ -7,7 +7,8 @@
 #include <memory>
 #include <vector>
 #if defined(ANALYSIS_GAME_TREE)
-#include <nlohmann/json.hpp>
+#include "GamePlayer/GameState.h"
+#include <nlohmann/json_fwd.hpp>
 #endif
 
 namespace GamePlayer
@@ -29,11 +30,11 @@ public:
     using ResponseGenerator = std::function<std::vector<GameState *>(GameState const & state, int depth)>;
 
     //! Constructor.
-    //!
-    //! @param  tt          A transposition table to be used in a search. The table is assumed to be persistent.
-    //! @param  sef         The static evaluation function
+    //! 
+    //! @param 	tt          A transposition table to be used in a search. The table is assumed to be persistent.
+    //! @param 	sef         The static evaluation function
     //! @param  rg          The response generator
-    //! @param  maxDepth    The maximum number of plies to search
+    //! @param 	maxDepth    The maximum number of plies to search
     GameTree(std::shared_ptr<TranspositionTable> tt,
              std::shared_ptr<StaticEvaluator>    sef,
              ResponseGenerator                   rg,
@@ -87,13 +88,13 @@ private:
 #if defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of the best response
     void nextPly(Node * node, float playerFactor, float alpha, float beta, int depth) const;
-#else   // defined(FEATURE_NEGAMAX)
+#else // defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of the first player's best response
     void firstPlayerSearch(Node * node, float alpha, float beta, int depth) const;
 
     // Sets the value of the node to the value of the second player's best response
     void secondPlayerSearch(Node * node, float alpha, float beta, int depth) const;
-#endif  // defined(FEATURE_NEGAMAX)
+#endif // defined(FEATURE_NEGAMAX)
 
     // Generates a list of responses to the given node
     NodeList generateResponses(Node const * node, int depth) const;

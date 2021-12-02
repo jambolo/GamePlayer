@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #if defined(ANALYSIS_GAME_STATE)
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #endif
 
 namespace GamePlayer

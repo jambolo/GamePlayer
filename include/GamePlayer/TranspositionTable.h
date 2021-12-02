@@ -4,7 +4,7 @@
 #pragma once
 
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #endif
 
 #include <optional>

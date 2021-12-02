@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <limits>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
