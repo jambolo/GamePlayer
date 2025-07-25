@@ -162,7 +162,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
     // because the search is not complete. Also, the value is stored only if its quality is better than the quality
     // of the value in the table.
     if (!pruned)
-        transpositionTable_->update(*node->state, node->value, node->quality);
+        transpositionTable_->update(node->state->fingerprint(), node->value, node->quality);
 
     // Release all generated states
 }
@@ -313,9 +313,6 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
         {
             // Save it
             bestResponse = response;
-#if defined(ANALYSIS_GAME_STATE)
-            bestResponse = response;
-#endif
 
             // If first player wins with this response, then there is no reason to look for anything better
             if (bestResponse.value == staticEvaluator_->secondPlayerWins())
@@ -386,6 +383,10 @@ GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) con
                        float value;
                        int quality;
                        getValue(*state, depth, &value, &quality);
+#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
+                       Node tempNode{ std::shared_ptr<GameState>(state), value, quality };  // @todo make sure this is correct
+                       priority = prioritize(tempNode, depth);
+#endif
                        return Node{ std::shared_ptr<GameState>(state), value, quality };
                    });
 
