@@ -1,13 +1,7 @@
-#if !defined(GAMEPLAYER_GAMESTATE_H)
-#define GAMEPLAYER_GAMESTATE_H
-
 #pragma once
 
 #include <memory>
-#include <vector>
-#if defined(ANALYSIS_GAME_STATE)
-#include <nlohmann/json_fwd.hpp>
-#endif
+#include <cstdint>
 
 namespace GamePlayer
 {
@@ -43,5 +37,3 @@ public:
     std::shared_ptr<GameState> response_;
 };
 } // namespace GamePlayer
-
-#endif // !defined(GAMEPLAYER_GAMESTATE_H)

@@ -1,12 +1,11 @@
-#if !defined(GAMEPLAYER_TRANSPOSITIONTABLE_H)
-#define GAMEPLAYER_TRANSPOSITIONTABLE_H
-
 #pragma once
 
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
 #include <nlohmann/json_fwd.hpp>
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -97,5 +96,3 @@ private:
     int maxAge_;
 };
 } // namespace GamePlayer
-
-#endif // !defined(GAMEPLAYER_TRANSPOSITIONTABLE_H)

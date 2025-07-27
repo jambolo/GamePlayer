@@ -4,8 +4,7 @@
 #include "GamePlayer/StaticEvaluator.h"
 #include "GamePlayer/TranspositionTable.h"
 
-// #include "Misc/Random.h"
-
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <nlohmann/json.hpp>
@@ -64,7 +63,7 @@ void GameTree::findBestResponse(std::shared_ptr<GameState> & s0) const
 
 #if defined(ANALYSIS_GAME_TREE)
     analysisData_.value = root.value;
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
 }
 
 #if defined(FEATURE_NEGAMAX)
@@ -109,7 +108,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
         }
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
         printStateInfo(response, depth, alpha, beta);
-#endif
+#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
         float value = response.value * playerFactor;
         // Determine if this response's value is the best so far. If so, then save the value and do alpha-beta pruning
@@ -135,7 +134,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
                 pruned = true;
 #if defined(ANALYSIS_GAME_TREE)
                 ++analysisData_.betaCutoffs;
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
                 break;
             }
 
@@ -209,7 +208,7 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
         }
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
         printStateInfo(response, depth, alpha, beta);
-#endif
+#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
         // Determine if this response's value is the best so far. If so, then save the value and do alpha-beta pruning
         if (response.value > bestResponse.value)
@@ -234,7 +233,7 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
                 pruned = true;
 #if defined(ANALYSIS_GAME_TREE)
                 ++analysisData_.betaCutoffs;
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
                 break;
             }
 
@@ -306,7 +305,7 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
         }
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
         printStateInfo(response, depth, alpha, beta);
-#endif
+#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
         // Determine if this response's value is the best so far. If so, then save the value and do alpha-beta pruning
         if (response.value < bestResponse.value)
@@ -332,7 +331,7 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
 
 #if defined(ANALYSIS_GAME_TREE)
                 ++analysisData_.alphaCutoffs;
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
 
                 break;
             }
@@ -372,7 +371,7 @@ GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) con
 #if defined(ANALYSIS_GAME_TREE)
     if (depth < GamePlayer::GameTree::AnalysisData::MAX_DEPTH)
         analysisData_.generatedCounts[depth] += (int)responses.size();
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
 
     NodeList rv;
     rv.resize(responses.size());
@@ -386,7 +385,7 @@ GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) con
 #if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
                        Node tempNode{ std::shared_ptr<GameState>(state), value, quality };  // @todo make sure this is correct
                        priority = prioritize(tempNode, depth);
-#endif
+#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
                        return Node{ std::shared_ptr<GameState>(state), value, quality };
                    });
 
@@ -414,7 +413,7 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
 #if defined(ANALYSIS_GAME_TREE)
     if (depth < GamePlayer::GameTree::AnalysisData::MAX_DEPTH)
         ++analysisData_.evaluatedCounts[depth];
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
 
 #if defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
 
@@ -422,7 +421,7 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
 
 #if defined(FEATURE_INCREMENTAL_STATIC_EVALUATION_VALIDATION)
     ASSERT(state.value_ == staticEvaluator_->evaluate(*pState));
-#endif
+#endif // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION_VALIDATION)
 
     *pValue   = state.value_;
     *pQuality = SEF_QUALITY;
@@ -485,7 +484,7 @@ void GameTree::AnalysisData::reset()
 
 #if defined(ANALYSIS_GAME_STATE)
     gsAnalysisData.reset();
-#endif
+#endif // defined(ANALYSIS_GAME_STATE)
 }
 
 json GameTree::AnalysisData::toJson() const
@@ -500,7 +499,7 @@ json GameTree::AnalysisData::toJson() const
 
 #if defined(ANALYSIS_GAME_STATE)
         , { "gameState", gsAnalysisData.toJson() }
-#endif
+#endif // defined(ANALYSIS_GAME_STATE)
     };
     return out;
 }
@@ -518,7 +517,7 @@ void GameTree::printStateInfo(GameState const & state, int depth, int alpha, int
             state.move_.notation().c_str(), state.value_, state.quality_, alpha, beta);
 }
 
-#endif // if defined(DEBUG_GAME_TREE_NODE_INFO)
+#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
 // Sort the nodes in descending order, first by descending priority, then by descending value.
 bool GameTree::descendingSorter(Node const & a, Node const & b)
@@ -529,7 +528,7 @@ bool GameTree::descendingSorter(Node const & a, Node const & b)
 
     if (a.priority < b.priority)
         return false;
-#endif
+#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
 
     return a.value > b.value;
 }
@@ -543,7 +542,7 @@ bool GameTree::ascendingSorter(Node const & a, Node const & b)
 
     if (a.priority < b.priority)
         return false;
-#endif
+#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
 
     return a.value < b.value;
 }

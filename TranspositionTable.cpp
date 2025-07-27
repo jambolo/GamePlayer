@@ -33,7 +33,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.checkCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
     assert(fingerprint != Entry::UNUSED_ENTRY);
     Entry const & entry = find(fingerprint);
@@ -44,7 +44,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
         entry.age_ = 0;  // Reset age
         return std::make_pair(entry.value_, entry.q_);
     }
@@ -53,7 +53,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         if (entry.fingerprint_ != Entry::UNUSED_ENTRY)
             ++analysisData_.collisionCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
         // Not found
         return {};
     }
@@ -71,7 +71,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.checkCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
     assert(fingerprint != Entry::UNUSED_ENTRY);
     Entry const & entry = find(fingerprint);
@@ -86,7 +86,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
         entry.age_ = 0;         // Reset age
         if (entry.q_ >= minQ)
             return std::make_pair(entry.value_, entry.q_);
@@ -96,7 +96,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         if (entry.fingerprint_ != Entry::UNUSED_ENTRY)
             ++analysisData_.collisionCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
     }
 
     // Not found or quality was too low
@@ -111,7 +111,7 @@ void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
     assert(fingerprint != Entry::UNUSED_ENTRY);
     Entry & entry = find(fingerprint);
@@ -146,7 +146,7 @@ void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.rejected;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
     }
 }
 
@@ -158,7 +158,7 @@ void TranspositionTable::set(uint64_t fingerprint, float value, int quality)
 {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
     assert(fingerprint != Entry::UNUSED_ENTRY);
     Entry & entry = find(fingerprint);
@@ -198,7 +198,7 @@ void TranspositionTable::age()
                 entry.fingerprint_ = Entry::UNUSED_ENTRY;
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
                 --analysisData_.usage;
-#endif
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
             }
         }
     }

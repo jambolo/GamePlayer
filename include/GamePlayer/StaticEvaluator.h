@@ -1,6 +1,3 @@
-#if !defined(GAMEPLAYER_STATICEVALUATOR_H)
-#define GAMEPLAYER_STATICEVALUATOR_H
-
 #pragma once
 
 namespace GamePlayer
@@ -51,5 +48,3 @@ public:
     virtual float secondPlayerWins() const = 0;
 };
 } // namespace GamePlayer
-
-#endif // !defined(GAMEPLAYER_STATICEVALUATOR_H)

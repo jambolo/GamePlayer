@@ -1,6 +1,5 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
-set(GTEST_ROOT "" CACHE PATH "Location of GTest")
 find_package(GTest REQUIRED)
 include(GoogleTest)
 

@@ -1,15 +1,15 @@
-#if !defined(GAMEPLAYER_GAMETREE_H)
-#define GAMEPLAYER_GAMETREE_H
-
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <vector>
 #if defined(ANALYSIS_GAME_TREE)
+#if defined(ANALYSIS_GAME_STATE)
 #include "GamePlayer/GameState.h"
+#endif // defined(ANALYSIS_GAME_STATE)
 #include <nlohmann/json_fwd.hpp>
-#endif
+#endif // defined(ANALYSIS_GAME_TREE)
 
 namespace GamePlayer
 {
@@ -60,7 +60,7 @@ public:
         int betaCutoffs;
 #if defined(ANALYSIS_GAME_STATE)
         GameState::AnalysisData gsAnalysisData;
-#endif
+#endif // defined(ANALYSIS_GAME_STATE)
 
         AnalysisData();
         void           reset();
@@ -81,7 +81,7 @@ private:
         int quality;       // Quality of the value
 #if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
         int priority;      // Higher priority states should be searched first
-#endif
+#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
     };
     using NodeList = std::vector<GameTree::Node>;
 
@@ -105,11 +105,11 @@ private:
 #if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
     // Computes a search priority for the state
     void prioritize(GameState * pstate, int depth);
-#endif
+#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
 
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
     void printStateInfo(GameState const & state, int depth, float alpha, float beta);
-#endif
+#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
     // Used to sort nodes by value
     static bool descendingSorter(Node const & a, Node const & b);
@@ -121,5 +121,3 @@ private:
     ResponseGenerator responseGenerator_;
 };
 } // namespace GamePlayer
-
-#endif // !defined(GAMEPLAYER_GAMETREE_H)
