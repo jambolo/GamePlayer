@@ -169,6 +169,7 @@ void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta,
 #else // defined(FEATURE_NEGAMAX)
 
 // Evaluate all of the first player's possible responses to the given state. The chosen response is the one with the highest value.
+// The value in the node is overwritten by the resulting value of the search.
 
 void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth) const
 {
@@ -182,6 +183,10 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
     // Note: Preliminary values of the generated states are retrieved from the transposition table or computed by
     // the static evaluation function.
     NodeList responses = generateResponses(node, depth);
+
+    // If there are no responses, it can be assumed that the game is over and the value is the value of the current state
+    if (responses.empty())
+        return;
 
     // Sort from highest to lowest
     std::sort(responses.begin(), responses.end(), descendingSorter);
@@ -266,6 +271,7 @@ void GameTree::firstPlayerSearch(Node * node, float alpha, float beta, int depth
 }
 
 // Evaluate all of the second player's possible responses to the given state. The chosen response is the one with the lowest value.
+// The value in the node is overwritten by the resulting value of the search.
 
 void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int depth) const
 {
@@ -280,14 +286,18 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
     // the static evaluation function.
     NodeList responses = generateResponses(node, depth);
 
+    // If there are no responses, it can be assumed that the game is over and the value is the value of the current state
+    // TODO: There are games in which the inability means that the player has lost, but that is not supported here.
+    if (responses.empty())
+        return;
+
     // Sort from lowest to highest
     std::sort(responses.begin(), responses.end(), ascendingSorter);
 
     // Evaluate each of the responses and choose the one with the lowest value
     Node bestResponse{ nullptr, std::numeric_limits<float>::max() };
     bool pruned = false;
-
-    for (auto & response : responses)
+    for (auto& response : responses)
     {
         // If the game is not over, then let's see how the first player responds (updating the value of this response)
         if (response.value != staticEvaluator_->secondPlayerWins())
@@ -298,7 +308,7 @@ void GameTree::secondPlayerSearch(Node * node, float alpha, float beta, int dept
             // as good as the quality of a search, so use the response as is.
             if ((response.quality < minResponseQuality) &&
                 ((responseDepth < maxDepth_) ||
-                 (shouldDoQuiescentSearch(node->value, response.value) && (responseDepth < maxDepth_ + 1))))
+                    (shouldDoQuiescentSearch(node->value, response.value) && (responseDepth < maxDepth_ + 1))))
             {
                 firstPlayerSearch(&response, alpha, beta, responseDepth);
             }

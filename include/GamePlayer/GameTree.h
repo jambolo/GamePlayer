@@ -27,6 +27,10 @@ public:
     //! @param  depth   current ply
     //! @return list of all possible responses
     //! @note   The caller gains ownership of the returned states.
+    //! @note   Returning no responses simply indicates that neither player can continue. It does not indicate the that
+    //!         game is over or that the player has passed. If passing is allowed, then it must be included in the
+    //!         responses, especially if is the only legal move. Similarly, if the inability to move results a loss,
+    //!         then the loss must be included as a response.
     using ResponseGenerator = std::function<std::vector<GameState *>(GameState const & state, int depth)>;
 
     //! Constructor.
