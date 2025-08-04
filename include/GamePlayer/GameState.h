@@ -1,7 +1,7 @@
 #pragma once
 
-#include <memory>
 #include <cstdint>
+#include <memory>
 
 namespace GamePlayer
 {
@@ -10,11 +10,10 @@ namespace GamePlayer
 class GameState
 {
 public:
-
     virtual ~GameState() = default;
 
     //! IDs of the players.
-    enum class PlayerId
+    enum class PlayerId : int8_t
     {
         FIRST  = 0,
         SECOND = 1
@@ -33,7 +32,7 @@ public:
     //! @note   This function must be overridden.
     virtual PlayerId whoseTurn() const = 0;
 
-    //! The expected response to this state, or nullptr if not yet determined
+    //! The expected response to this state, or nullptr
     std::shared_ptr<GameState> response_;
 };
 } // namespace GamePlayer

@@ -28,7 +28,6 @@ namespace GamePlayer
 class TranspositionTable
 {
 public:
-
     //! Constructor
     TranspositionTable(size_t indexSize, int maxAge);
 
@@ -74,25 +73,24 @@ public:
 
     mutable AnalysisData analysisData_;
 
-#endif  // defined(ANALYSIS_TRANSPOSITION_TABLE)
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
 private:
-
     struct Entry
     {
-        uint64_t fingerprint_;  // The state's fingerprint
-        float value_;           // The state's value
-        int16_t q_;             // The quality of the value
-        mutable int16_t age_;   // The number of turns since the entry has been referenced
+        uint64_t        fingerprint_; // The state's fingerprint
+        float           value_;       // The state's value
+        int16_t         q_;           // The quality of the value
+        mutable int16_t age_;         // The number of turns since the entry has been referenced
 
         static uint64_t constexpr UNUSED_ENTRY = (uint64_t)-1;
         void clear() { fingerprint_ = UNUSED_ENTRY; }
     };
 
     Entry const & find(uint64_t hash) const { return table_[hash % table_.size()]; }
-    Entry &       find(uint64_t hash)       { return table_[hash % table_.size()]; }
+    Entry &       find(uint64_t hash) { return table_[hash % table_.size()]; }
 
     std::vector<Entry> table_;
-    int maxAge_;
+    int                maxAge_;
 };
 } // namespace GamePlayer

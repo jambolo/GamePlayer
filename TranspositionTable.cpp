@@ -44,8 +44,8 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-        entry.age_ = 0;  // Reset age
+#endif                  // defined(ANALYSIS_TRANSPOSITION_TABLE)
+        entry.age_ = 0; // Reset age
         return std::make_pair(entry.value_, entry.q_);
     }
     else
@@ -54,7 +54,7 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
         if (entry.fingerprint_ != Entry::UNUSED_ENTRY)
             ++analysisData_.collisionCount;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-        // Not found
+       // Not found
         return {};
     }
 }
@@ -86,8 +86,8 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         ++analysisData_.hitCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-        entry.age_ = 0;         // Reset age
+#endif                  // defined(ANALYSIS_TRANSPOSITION_TABLE)
+        entry.age_ = 0; // Reset age
         if (entry.q_ >= minQ)
             return std::make_pair(entry.value_, entry.q_);
     }
@@ -140,7 +140,7 @@ void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
         else
             ++analysisData_.overwritten;
 
-#endif      // defined(ANALYSIS_TRANSPOSITION_TABLE)
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
     }
     else
     {
@@ -180,7 +180,7 @@ void TranspositionTable::set(uint64_t fingerprint, float value, int quality)
     else
         ++analysisData_.overwritten;
 
-#endif  // defined(ANALYSIS_TRANSPOSITION_TABLE)
+#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 }
 
 //! The T-table is persistent. So in order to gradually dispose of entries that are no longer relevant, entries that
@@ -221,21 +221,20 @@ void TranspositionTable::AnalysisData::reset()
     rejected       = 0;
     overwritten    = 0;
     refreshed      = 0;
-//    usage          = 0;    // never reset
+    //    usage          = 0;    // never reset
 }
 
 json TranspositionTable::AnalysisData::toJson() const
 {
-    json out =
-    {
-        { "checkCount", checkCount },
-        { "updateCount", updateCount },
-        { "hitCount", hitCount },
-        { "collisionCount", collisionCount },
-        { "rejected", rejected },
-        { "overwritten", overwritten },
-        { "refreshed", refreshed },
-        { "usage", usage },
+    json out = {
+        {"checkCount", checkCount},
+        {"updateCount", updateCount},
+        {"hitCount", hitCount},
+        {"collisionCount", collisionCount},
+        {"rejected", rejected},
+        {"overwritten", overwritten},
+        {"refreshed", refreshed},
+        {"usage", usage},
     };
 
     return out;

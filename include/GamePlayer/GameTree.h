@@ -34,15 +34,12 @@ public:
     using ResponseGenerator = std::function<std::vector<GameState *>(GameState const & state, int depth)>;
 
     //! Constructor.
-    //! 
+    //!
     //! @param 	tt          A transposition table to be used in a search. The table is assumed to be persistent.
     //! @param 	sef         The static evaluation function
     //! @param  rg          The response generator
     //! @param 	maxDepth    The maximum number of plies to search
-    GameTree(std::shared_ptr<TranspositionTable> tt,
-             std::shared_ptr<StaticEvaluator>    sef,
-             ResponseGenerator                   rg,
-             int                                 maxDepth);
+    GameTree(std::shared_ptr<TranspositionTable> tt, std::shared_ptr<StaticEvaluator> sef, ResponseGenerator rg, int maxDepth);
 
     //! Searches for the best response to the given state.
     //!
@@ -57,11 +54,11 @@ public:
     struct AnalysisData
     {
         static size_t constexpr MAX_DEPTH = 10; // Maximum number of plies tracked
-        int generatedCounts[MAX_DEPTH];
-        int evaluatedCounts[MAX_DEPTH];
+        int   generatedCounts[MAX_DEPTH];
+        int   evaluatedCounts[MAX_DEPTH];
         float value;
-        int alphaCutoffs;
-        int betaCutoffs;
+        int   alphaCutoffs;
+        int   betaCutoffs;
 #if defined(ANALYSIS_GAME_STATE)
         GameState::AnalysisData gsAnalysisData;
 #endif // defined(ANALYSIS_GAME_STATE)
@@ -74,25 +71,24 @@ public:
     //! Analysis data for the last move
     mutable AnalysisData analysisData_;
 
-#endif  // defined(ANALYSIS_GAME_TREE)
+#endif // defined(ANALYSIS_GAME_TREE)
 
 private:
-
     struct Node
     {
         std::shared_ptr<GameState> state;
-        float value;       // Value of the state
-        int quality;       // Quality of the value
+        float                      value;   // Value of the state
+        int                        quality; // Quality of the value
 #if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-        int priority;      // Higher priority states should be searched first
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
+        int priority; // Higher priority states should be searched first
+#endif                // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
     };
     using NodeList = std::vector<GameTree::Node>;
 
 #if defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of the best response
     void nextPly(Node * node, float playerFactor, float alpha, float beta, int depth) const;
-#else // defined(FEATURE_NEGAMAX)
+#else  // defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of the first player's best response
     void firstPlayerSearch(Node * node, float alpha, float beta, int depth) const;
 
@@ -119,9 +115,9 @@ private:
     static bool descendingSorter(Node const & a, Node const & b);
     static bool ascendingSorter(Node const & a, Node const & b);
 
-    int maxDepth_;                                              // How deep to search
-    std::shared_ptr<TranspositionTable> transpositionTable_;    // Transposition table (persistent)
-    std::shared_ptr<StaticEvaluator> staticEvaluator_;          // Static evaluator (persistent)
-    ResponseGenerator responseGenerator_;
+    int                                 maxDepth_;           // How deep to search
+    std::shared_ptr<TranspositionTable> transpositionTable_; // Transposition table (persistent)
+    std::shared_ptr<StaticEvaluator>    staticEvaluator_;    // Static evaluator (persistent)
+    ResponseGenerator                   responseGenerator_;
 };
 } // namespace GamePlayer
