@@ -70,6 +70,7 @@ set(PUBLIC_HEADERS
 )
 
 set(PRIVATE_SOURCES
+    GameState.cpp
     GameTree.cpp
     TranspositionTable.cpp
 )

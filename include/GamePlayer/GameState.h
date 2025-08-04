@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(ANALYSIS_GAME_STATE)
+#include <nlohmann/json_fwd.hpp>
+#endif // defined(ANALYSIS_GAME_STATE)
+
 #include <cstdint>
 #include <memory>
 
@@ -15,8 +19,8 @@ public:
     //! IDs of the players.
     enum class PlayerId : int8_t
     {
-        FIRST  = 0,
-        SECOND = 1
+        ALICE = 0,
+        BOB   = 1
     };
 
     //! Returns a fingerprint for this state.
@@ -34,5 +38,15 @@ public:
 
     //! The expected response to this state, or nullptr
     std::shared_ptr<GameState> response_;
+
+#if defined(ANALYSIS_GAME_STATE)
+    //! Analysis data relevant to the game state's operation
+    struct AnalysisData
+    {
+        // nothing to store here yet
+        void           reset();
+        nlohmann::json toJson() const;
+    };
+#endif // defined(ANALYSIS_GAME_STATE)
 };
 } // namespace GamePlayer
