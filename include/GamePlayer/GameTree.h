@@ -79,33 +79,20 @@ private:
         std::shared_ptr<GameState> state;
         float                      value;   // Value of the state
         int                        quality; // Quality of the value
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-        int priority; // Higher priority states should be searched first
-#endif                // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
     };
     using NodeList = std::vector<GameTree::Node>;
 
-#if defined(FEATURE_NEGAMAX)
-    // Sets the value of the node to the value of the best response
-    void nextPly(Node * node, float playerFactor, float alpha, float beta, int depth) const;
-#else  // defined(FEATURE_NEGAMAX)
     // Sets the value of the node to the value of Alice's best response
     void aliceSearch(Node * node, float alpha, float beta, int depth) const;
 
     // Sets the value of the node to the value of Bob's best response
     void bobSearch(Node * node, float alpha, float beta, int depth) const;
-#endif // defined(FEATURE_NEGAMAX)
 
     // Generates a list of responses to the given node
     NodeList generateResponses(Node const * node, int depth) const;
 
     // Get the value of the state from the static evaluator or the transposition table
     void getValue(GameState const & state, int depth, float * pValue, int * pQuality) const;
-
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-    // Computes a search priority for the state
-    void prioritize(GameState * pstate, int depth);
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
 
 #if defined(DEBUG_GAME_TREE_NODE_INFO)
     void printStateInfo(Node const & state, int depth, float alpha, float beta) const;

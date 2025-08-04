@@ -11,30 +11,11 @@
 
 using json = nlohmann::json;
 
-namespace
-{
-int constexpr SEF_QUALITY = 0;
-
-bool shouldDoQuiescentSearch(float previousValue, float thisValue)
-{
-#if defined(FEATURE_QUIESCENT_SEARCH)
-
-    // In the normal case, we would not search. However, if the situation is unsettled and we haven't reached the true depth limit,
-    // then we should search the next ply.
-
-    float const QUIESCENT_THRESHOLD = 1.0f;
-    return abs(previousValue - thisValue) >= QUIESCENT_THRESHOLD;
-
-#else // defined(FEATURE_QUIESCENT_SEARCH)
-
-    return false;
-
-#endif // defined(FEATURE_QUIESCENT_SEARCH)
-}
-} // anonymous namespace
+static int const SEF_QUALITY = 0;
 
 namespace GamePlayer
 {
+
 GameTree::GameTree(std::shared_ptr<TranspositionTable> tt,
                    std::shared_ptr<StaticEvaluator>    sef,
                    ResponseGenerator                   rg,
@@ -50,122 +31,15 @@ void GameTree::findBestResponse(std::shared_ptr<GameState> & s0) const
 {
     Node root{s0};
 
-#if defined(FEATURE_NEGAMAX)
-    if (s0->whoseTurn() == GameState::PlayerId::ALICE)
-        nextPly(&root, 1.0f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-    else
-        nextPly(&root, -1.0f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-#else  // defined(FEATURE_NEGAMAX)
     if (s0->whoseTurn() == GameState::PlayerId::ALICE)
         aliceSearch(&root, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
     else
         bobSearch(&root, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-#endif // defined(FEATURE_NEGAMAX)
 
 #if defined(ANALYSIS_GAME_TREE)
     analysisData_.value = root.value;
 #endif // defined(ANALYSIS_GAME_TREE)
 }
-
-#if defined(FEATURE_NEGAMAX)
-
-// Recursively evaluate this move using the negamax algorithm
-
-void GameTree::nextPly(Node * node, float playerFactor, float alpha, float beta, int depth) const
-{
-    int responseDepth = depth + 1;                      // Depth of responses to this state
-    int quality       = maxDepth_ - depth;              // Quality of values at this depth (this is the depth of plies searched to
-                                                        // get the results for this ply)
-    int minResponseQuality = maxDepth_ - responseDepth; // Minimum acceptable quality of responses to this state
-
-    // Generate a list of the possible responses to this state. They are sorted in descending order hoping that a beta cutoff will
-    // occur early.
-    // Note: Preliminary values of the generated states are retrieved from the transposition table or computed by the static
-    // evaluation function.
-    NodeList responses = generateResponses(node, depth);
-
-    // Sort from highest to lowest
-    std::sort(responses.begin(), responses.end(), descendingSorter);
-
-    // Evaluate each of the responses and choose the one with the highest value
-    bool pruned = false;
-    Node bestResponse{nullptr, -std::numeric_limits<float>::max() * playerFactor};
-
-    for (auto & response : responses)
-    {
-        // If the game is not over, then let's see how Bob responds (updating the value of this response)
-        if (response.value < staticEvaluator_->aliceWinsValue() * playerFactor)
-        {
-            // The quality of a value is basically the depth of the search tree below it. The reason for checking the quality is
-            // that some of the responses have not been fully searched. If the quality of the preliminary value is not as good as
-            // the minimum quality and we haven't reached the maximum depth, then do a search. Otherwise, the response's quality is
-            // as good as the quality of a search, so use the response as is.
-            if ((response.quality < minResponseQuality) &&
-                ((responseDepth < maxDepth_) ||
-                 (shouldDoQuiescentSearch(node->value, response.value) && (responseDepth < maxDepth_ + 1))))
-            {
-                nextPly(&response, -playerFactor, -beta, -alpha, responseDepth);
-            }
-        }
-#if defined(DEBUG_GAME_TREE_NODE_INFO)
-        printStateInfo(response, depth, alpha, beta);
-#endif // defined(DEBUG_GAME_TREE_NODE_INFO)
-
-        float value = response.value * playerFactor;
-        // Determine if this response's value is the best so far. If so, then save the value and do alpha-beta pruning
-        if (value > bestResponse.value)
-        {
-            // Save it
-            bestResponse = response;
-
-            // If Alice wins with this response, then there is no reason to look for anything better
-            if (value >= staticEvaluator_->aliceWinsValue())
-                break;
-
-            // alpha-beta pruning (beta cutoff) Here's how it works:
-            //
-            // Bob is looking for the lowest value. The 'beta' is the value of Bob's best move found so far in the previous ply. If
-            // the value of this response is higher than the beta, then Bob will abandon its move leading to this response because
-            // because the result is worse than the result of a move it has already found. As such, there is no reason to continue.
-
-            if (value > beta)
-            {
-                // Beta cutoff
-                pruned = true;
-#if defined(ANALYSIS_GAME_TREE)
-                ++analysisData_.betaCutoffs;
-#endif // defined(ANALYSIS_GAME_TREE)
-                break;
-            }
-
-            // alpha-beta pruning (alpha) Here's how it works.
-            //
-            // Alice is looking for the highest value. The 'alpha' is the value of Alice's best move found so far. If the value of
-            // this response is higher than the alpha, then obviously it is a better move for Alice. The alpha is subsequently
-            // passed to Bob's search so that if it finds a response with a lower value than the alpha, it won't bother continuing
-            // because it knows that Alice already has a better move and will choose it instead of allowing Bob to make a move with
-            // a lower value.
-
-            if (value > alpha)
-                alpha = value;
-        }
-    }
-
-    // Return the value of this move
-
-    node->value            = bestResponse.value;
-    node->quality          = quality;
-    node->state->response_ = bestResponse.state;
-
-    // Save the value of the state in the T-table if the ply was not pruned. Pruning results in an incorrect value because the
-    // search is not complete. Also, the value is stored only if its quality is better than the quality of the value in the table.
-    if (!pruned)
-        transpositionTable_->update(node->state->fingerprint(), node->value, node->quality);
-
-    // Release all generated states
-}
-
-#else // defined(FEATURE_NEGAMAX)
 
 // Evaluate all of Alice's possible responses to the given state. The chosen response is the one with the highest value. The value
 // in the node is overwritten by the resulting value of the search.
@@ -381,8 +255,6 @@ void GameTree::bobSearch(Node * node, float alpha, float beta, int depth) const
     // Note: all generated states created for this ply, except the the chosen response, are released at this point.
 }
 
-#endif // defined(FEATURE_NEGAMAX)
-
 GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) const
 {
     std::vector<GameState *> responses = responseGenerator_(*node->state, depth);
@@ -404,10 +276,6 @@ GameTree::NodeList GameTree::generateResponses(Node const * node, int depth) con
                        float value;
                        int   quality;
                        getValue(*state, depth, &value, &quality);
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-                       Node tempNode{std::shared_ptr<GameState>(state), value, quality}; // @todo make sure this is correct
-                       priority = prioritize(tempNode, depth);
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
                        return Node{std::shared_ptr<GameState>(state), value, quality};
                    });
 
@@ -436,52 +304,14 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
         ++analysisData_.evaluatedCounts[depth];
 #endif // defined(ANALYSIS_GAME_TREE)
 
-#if defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
-
-    // Note: The static value was already computed during move generation
-
-#if defined(FEATURE_INCREMENTAL_STATIC_EVALUATION_VALIDATION)
-    ASSERT(state.value_ == staticEvaluator_->evaluate(*pState));
-#endif // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION_VALIDATION)
-
-    *pValue   = state.value_;
-    *pQuality = SEF_QUALITY;
-
-#else // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
-
     float value = staticEvaluator_->evaluate(state);
 
     *pValue   = value;
     *pQuality = SEF_QUALITY;
 
-#endif // defined(FEATURE_INCREMENTAL_STATIC_EVALUATION)
-
     // Save the value of the state in the T-table
     transpositionTable_->update(state.fingerprint(), *pValue, *pQuality);
 }
-
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-
-int GameTree::prioritize(Node const & state, int depth)
-{
-    int quality = maxDepth_ - depth;
-
-    // Prioritization strategy:
-    //
-    // It is assumed that the tree will do a search only if the preliminary quality is lower than the result of searching. So, a
-    // preliminary quality as high as the quality at this ply is given a higher priority. The result is that high-priority values
-    // are considered first and could potentially hasten the occurrences of alpha-beta cut-offs because they are probably closer to
-    // the final value. The cost of a preliminary value is the cost of a T-table lookup or an SEF, which is much cheaper than the
-    // cost of a search. The savings of this strategy is the saving gained by earlier alpha-beta cutoffs minus the costs of the
-    // additional SEFs.
-
-    int const PRIORITY_HIGH = 1;
-    int const PRIORITY_LOW  = 0;
-
-    return (state.quality_ > quality) ? PRIORITY_HIGH : PRIORITY_LOW;
-}
-
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
 
 #if defined(ANALYSIS_GAME_TREE)
 
@@ -547,31 +377,16 @@ void GameTree::printStateInfo(Node const & node, int depth, float alpha, float b
 
 #endif // defined(DEBUG_GAME_TREE_NODE_INFO)
 
-// Sort the nodes in descending order, first by descending priority, then by descending value.
+// Sort nodes in descending order by value.
 bool GameTree::descendingSorter(Node const & a, Node const & b)
 {
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-    if (a.priority > b.priority)
-        return true;
-
-    if (a.priority < b.priority)
-        return false;
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-
     return a.value > b.value;
 }
 
-// Sort the nodes in ascending order, first by descending priority, then by ascending value.
+// Sort  nodes in ascending order by value.
 bool GameTree::ascendingSorter(Node const & a, Node const & b)
 {
-#if defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-    if (a.priority > b.priority)
-        return true;
-
-    if (a.priority < b.priority)
-        return false;
-#endif // defined(FEATURE_PRIORITIZED_MOVE_ORDERING)
-
     return a.value < b.value;
 }
+
 } // namespace GamePlayer
