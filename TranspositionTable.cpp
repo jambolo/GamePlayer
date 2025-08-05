@@ -16,6 +16,9 @@ TranspositionTable::TranspositionTable(size_t size, int maxAge)
     : table_(size)
     , maxAge_(maxAge)
 {
+    assert(size > 0);
+    assert(0 < maxAge && maxAge < std::numeric_limits<decltype(Entry::age_)>::max());
+
     // Invalidate all entries in the table
     for (auto & entry : table_)
     {
@@ -23,79 +26,45 @@ TranspositionTable::TranspositionTable(size_t size, int maxAge)
     }
 }
 
-//! This function returns the value of a state if the value is stored in the table. Otherwise, false is returned and the return
-//! values are not modified.
+//! Returns the value and quality of a state if they are stored in the table and its quality is above the specified minimum (if
+//! specified). Otherwise, nullopt is returned.
 //!
 //! @param  fingerprint     Fingerprint of state to be checked for
+//! @param  minQ            Minimum quality. If less 0, it is not used. (default: -1, i.e., no minimum)
 //!
 //! @return optional CheckResult
 
-std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_t fingerprint) const
+std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_t fingerprint, int minQ /* = -1*/) const
 {
+    assert(fingerprint != Entry::UNUSED);
+    assert(minQ < std::numeric_limits<decltype(Entry::q_)>::max());
+
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.checkCount;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
-    assert(fingerprint != Entry::UNUSED);
+    // Find the entry
     Entry const & entry = find(fingerprint);
-
     if (entry.fingerprint_ != fingerprint)
     {
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
         if (entry.fingerprint_ != Entry::UNUSED)
             ++analysisData_.collisionCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-       // Not found
-        return std::nullopt;
+#endif                       // defined(ANALYSIS_TRANSPOSITION_TABLE)
+        return std::nullopt; // Not found
     }
 
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.hitCount;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
-    entry.age_ = 0; // Reset age
-    return CheckResult(entry.value_, entry.q_);
-}
+    // Check the quality
+    if (minQ >= 0 && entry.q_ < minQ)
+        return std::nullopt; // Insufficient quality
 
-//! This function returns the value of a state if the value is stored in the table and its quality is above the specified minimum.
-//! Otherwise, nothing is returned.
-//!
-//! @param  fingerprint     Fingerprint of state to be checked for
-//! @param  minQ            Minimum quality
-//!
-//! @return optional CheckResult
+    entry.age_ = 0; // The entry was accessed so reset its age
 
-std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_t fingerprint, int minQ) const
-{
-#if defined(ANALYSIS_TRANSPOSITION_TABLE)
-    ++analysisData_.checkCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-
-    assert(fingerprint != Entry::UNUSED);
-    Entry const & entry = find(fingerprint);
-
-    if (entry.fingerprint_ != fingerprint)
-    {
-#if defined(ANALYSIS_TRANSPOSITION_TABLE)
-        if (entry.fingerprint_ != Entry::UNUSED)
-            ++analysisData_.collisionCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-        return std::nullopt;
-    }
-
-    // Found
-
-#if defined(ANALYSIS_TRANSPOSITION_TABLE)
-    ++analysisData_.hitCount;
-#endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-
-    entry.age_ = 0; // Reset age
-
-    // Return the result only if quality is sufficient
-    if (entry.q_ >= minQ)
-        CheckResult{entry.value_, entry.q_};
-
-    return std::nullopt;
+    return CheckResult{entry.value_, entry.q_};
 }
 
 //! @param  fingerprint     Fingerprint of state to be stored
@@ -104,14 +73,16 @@ std::optional<TranspositionTable::CheckResult> TranspositionTable::check(uint64_
 
 void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
 {
+    assert(fingerprint != Entry::UNUSED);
+    assert(0 <= quality && quality < std::numeric_limits<decltype(Entry::q_)>::max());
+
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
-    assert(fingerprint != Entry::UNUSED);
-    Entry & entry = find(fingerprint);
-
-    bool isUnused = (entry.fingerprint_ == Entry::UNUSED);
+    // Find the entry for the fingerprint
+    Entry & entry    = find(fingerprint);
+    bool    isUnused = (entry.fingerprint_ == Entry::UNUSED);
 
     // If the entry is unused or if the new quality >= the stored quality, then store the new value. Note: It is assumed to be
     // better to replace values of equal quality in order to dispose of old entries that may no longer be relevant.
@@ -126,7 +97,7 @@ void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
         else
             ++analysisData_.overwritten;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
-        entry = Entry{fingerprint, value, static_cast<int16_t>(quality), 0};
+        entry = Entry{fingerprint, value, static_cast<decltype(Entry::q_)>(quality), 0};
     }
     else
     {
@@ -142,11 +113,14 @@ void TranspositionTable::update(uint64_t fingerprint, float value, int quality)
 
 void TranspositionTable::set(uint64_t fingerprint, float value, int quality)
 {
+    assert(fingerprint != Entry::UNUSED);
+    assert(0 <= quality && quality < std::numeric_limits<decltype(Entry::q_)>::max());
+
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
     ++analysisData_.updateCount;
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
-    assert(fingerprint != Entry::UNUSED);
+    // Find the entry for the fingerprint
     Entry & entry = find(fingerprint);
 
 #if defined(ANALYSIS_TRANSPOSITION_TABLE)
@@ -159,7 +133,7 @@ void TranspositionTable::set(uint64_t fingerprint, float value, int quality)
 #endif // defined(ANALYSIS_TRANSPOSITION_TABLE)
 
     // Store the state, value and quality
-    entry = Entry{fingerprint, value, static_cast<int16_t>(quality), 0};
+    entry = Entry{fingerprint, value, static_cast<decltype(Entry::q_)>(quality), 0};
 }
 
 //! The T-table is persistent. So in order to gradually dispose of entries that are no longer relevant, entries that have not been

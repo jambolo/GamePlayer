@@ -33,15 +33,14 @@ public:
     TranspositionTable(size_t indexSize, int maxAge);
 
     //! Result type returned by check().
-    //! @param  _0  value of the state
-    //! @param  _1  quality of the returned value
-    using CheckResult = std::pair<float, int>;
+    struct CheckResult
+    {
+        float value;   //! Value of the state
+        int   quality; //! Quality of the returned value
+    };
 
     //! Returns the stored value and quality of the given state
-    std::optional<CheckResult> check(uint64_t fingerprint) const;
-
-    //! Returns the stored value and quality of the given state
-    std::optional<CheckResult> check(uint64_t fingerprint, int minQ) const;
+    std::optional<CheckResult> check(uint64_t fingerprint, int minQ = -1) const;
 
     //! Stores a value in the table if the quality of its value is higher
     void update(uint64_t fingerprint, float value, int quality);

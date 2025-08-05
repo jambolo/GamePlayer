@@ -9,11 +9,13 @@
 
 namespace GamePlayer
 {
+
 //! An abstract game state.
 
 class GameState
 {
 public:
+    GameState()          = default;
     virtual ~GameState() = default;
 
     //! IDs of the players.
@@ -22,6 +24,13 @@ public:
         ALICE = 0,
         BOB   = 1
     };
+
+    //! Returns the ID of the other player.
+    //! 
+    //! @param player   The ID of a player
+    //! 
+    //! @return The ID of the other player
+    inline PlayerId otherPlayer(PlayerId player) const { return (player == PlayerId::ALICE) ? PlayerId::BOB : PlayerId::ALICE; }
 
     //! Returns a fingerprint for this state.
     //!
@@ -49,4 +58,5 @@ public:
     };
 #endif // defined(ANALYSIS_GAME_STATE)
 };
+
 } // namespace GamePlayer

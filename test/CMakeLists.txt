@@ -1,27 +1,49 @@
-cmake_minimum_required(VERSION 3.21)
-
-find_package(GTest REQUIRED)
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+)
+# For Windows: prevents gtest from overriding your compiler's runtime settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
-add_definitions(
-    -DNOMINMAX
-    -DWIN32_LEAN_AND_MEAN
-    -DVC_EXTRALEAN
-    -D_CRT_SECURE_NO_WARNINGS
-    -D_SECURE_SCL=0
-    -D_SCL_SECURE_NO_WARNINGS
-)
+# Function to create test executables
+function(add_GamePlayer_test test_name source_file)
+    add_executable(${test_name} ${source_file})
+    set_target_properties(${test_name} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    if(WIN32)
+        target_compile_definitions(${test_name}
+            PRIVATE
+                NOMINMAX
+                WIN32_LEAN_AND_MEAN
+                VC_EXTRALEAN
+                _CRT_SECURE_NO_WARNINGS
+                _SECURE_SCL=0
+                _SCL_SECURE_NO_WARNINGS
+        )
+    endif()
 
-set(SOURCES
-    test-Placeholder.cpp
-)
+    target_link_libraries(${test_name} 
+        PRIVATE 
+            ${PROJECT_NAME}::${PROJECT_NAME}
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+    )
+    gtest_discover_tests(${test_name})
+    message(STATUS "Added test executable: ${test_name}")
+endfunction()
+
+file(GLOB SOURCES CONFIGURE_DEPENDS "*.cpp")
+
+message(STATUS "Building tests for ${PROJECT_NAME}")
 
 foreach(FILE ${SOURCES})
     get_filename_component(TEST ${FILE} NAME_WE)
-    set(TEST_EXE "${PROJECT_NAME}_${TEST}")
-    add_executable(${TEST_EXE} ${FILE})
-    target_link_libraries(${TEST_EXE} PRIVATE ${PROJECT_NAME} GTest::GTest GTest::Main)
-    gtest_discover_tests(${TEST_EXE})
-    target_compile_features(${TEST_EXE} PRIVATE cxx_std_17)
-    set_target_properties(${TEST_EXE} PROPERTIES CXX_EXTENSIONS OFF)
+    add_GamePlayer_test("${PROJECT_NAME}_${TEST}" ${FILE})
 endforeach()

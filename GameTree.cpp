@@ -79,9 +79,7 @@ void GameTree::aliceSearch(Node * node, float alpha, float beta, int depth) cons
             // that some of the responses have not been fully searched. If the quality of the preliminary value is not as good as
             // the minimum quality and we haven't reached the maximum depth, then do a search. Otherwise, the response's quality is
             // as good as the quality of a search, so use the response as is.
-            if ((response.quality < minResponseQuality) &&
-                ((responseDepth < maxDepth_) ||
-                 (shouldDoQuiescentSearch(node->value, response.value) && (responseDepth < maxDepth_ + 1))))
+            if (response.quality < minResponseQuality && responseDepth < maxDepth_)
             {
                 // Update the value of this response by searching Bob's responses to this response.
                 // Note: If no further search is possible, then the response's value and quality is already set by the static
@@ -186,9 +184,7 @@ void GameTree::bobSearch(Node * node, float alpha, float beta, int depth) const
             // that some of the responses have not been fully searched. If the quality of the preliminary value is not as good as
             // the minimum quality and we haven't reached the maximum depth, then do a search. Otherwise, the response's quality is
             // as good as the quality of a search, so use the response as is.
-            if ((response.quality < minResponseQuality) &&
-                ((responseDepth < maxDepth_) ||
-                 (shouldDoQuiescentSearch(node->value, response.value) && (responseDepth < maxDepth_ + 1))))
+            if (response.quality < minResponseQuality && responseDepth < maxDepth_)
             {
                 // Update the value of this response by searching Alice's responses to this response.
                 // Note: If no further search is possible, then the response's value and quality is already set by the static
@@ -294,8 +290,8 @@ void GameTree::getValue(GameState const & state, int depth, float * pValue, int 
     std::optional<TranspositionTable::CheckResult> result = transpositionTable_->check(state.fingerprint());
     if (result)
     {
-        *pValue   = result->first;
-        *pQuality = result->second;
+        *pValue   = result->value;
+        *pQuality = result->quality;
         return;
     }
 

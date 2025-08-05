@@ -1,23 +1,32 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.21...4.3)
 project(GamePlayer 
     VERSION 0.1.0 
     LANGUAGES CXX 
     DESCRIPTION "A game player for two-player perfect information games, implemented using a min-max game tree"
 )
 
-# Use modern CMake policies
-cmake_policy(SET CMP0077 NEW)  # option() honors normal variables
-cmake_policy(SET CMP0074 NEW)  # find_package uses <PackageName>_ROOT variables
+# Enable policy behavior up to CMake 4.3 when available
+cmake_policy(VERSION 3.21...4.3)
 
 #########################################################################
 # Project Options                                                      #
 #########################################################################
 
+option(BUILD_TESTING "Build unit tests" OFF)
 option(BUILD_SHARED_LIBS "Build libraries as DLLs" OFF)
-option(${PROJECT_NAME}_ANALYSIS_TRANSPOSITION_TABLE "General TranspositionTable analysis is enabled if true" OFF)
 option(${PROJECT_NAME}_ANALYSIS_GAME_TREE "General GameTree analysis is enabled if true" OFF)
 option(${PROJECT_NAME}_ANALYSIS_GAME_STATE "General GameState analysis is enabled if true" OFF)
+option(${PROJECT_NAME}_ANALYSIS_TRANSPOSITION_TABLE "General TranspositionTable analysis is enabled if true" OFF)
 option(${PROJECT_NAME}_DEBUG_GAME_TREE_NODE_INFO "GameTree info is dumped if true" OFF)
+
+# Force feature flags OFF for test builds
+if(BUILD_TESTING)
+    message(STATUS "Testing is enabled -- analysis and debug features are OFF.")
+    set(${PROJECT_NAME}_ANALYSIS_GAME_TREE OFF CACHE BOOL "" FORCE)
+    set(${PROJECT_NAME}_ANALYSIS_GAME_STATE OFF CACHE BOOL "" FORCE)
+    set(${PROJECT_NAME}_ANALYSIS_TRANSPOSITION_TABLE OFF CACHE BOOL "" FORCE)
+    set(${PROJECT_NAME}_DEBUG_GAME_TREE_NODE_INFO OFF CACHE BOOL "" FORCE)
+endif()
 
 # Print configuration summary
 message(STATUS "${PROJECT_NAME} Configuration Summary:")
@@ -33,8 +42,7 @@ message(STATUS "DEBUG_GAME_TREE_NODE_INFO                         : ${${PROJECT_
 # Dependencies                                                         #
 #########################################################################
 
-include(FetchContent)
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 #########################################################################
 # Library Target                                                       #
@@ -54,7 +62,6 @@ set(PRIVATE_SOURCES
 )
 
 add_library(${PROJECT_NAME} ${PRIVATE_SOURCES} ${PUBLIC_HEADERS})
-
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -77,7 +84,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME} 
-    PUBLIC 
+    PRIVATE 
         nlohmann_json::nlohmann_json
 )
 
@@ -109,24 +116,28 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PRIVATE_SOURCES} ${PUBLIC_
 # Documentation                                                         #
 #########################################################################
 
-option(${PROJECT_NAME}_BUILD_DOCS "Build documentation using Doxygen" OFF)
+if(PROJECT_IS_TOP_LEVEL)
 
-if(${PROJECT_NAME}_BUILD_DOCS)
-    find_package(Doxygen QUIET)
-    if(DOXYGEN_FOUND)
-        set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME})
-        set(DOXYGEN_PROJECT_BRIEF ${PROJECT_DESCRIPTION})
-        set(DOXYGEN_PROJECT_VERSION ${PROJECT_VERSION})
-        set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs)
-
-        doxygen_add_docs(${PROJECT_NAME}_docs
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/README.md
-            COMMENT "Generating documentation for ${PROJECT_NAME}"
-        )
-    else()
-        message(WARNING "Doxygen not found. Documentation will not be built.")
+    option(${PROJECT_NAME}_BUILD_DOCS "Build documentation using Doxygen" OFF)
+    
+    if(${PROJECT_NAME}_BUILD_DOCS)
+        find_package(Doxygen QUIET)
+        if(DOXYGEN_FOUND)
+            set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME})
+            set(DOXYGEN_PROJECT_BRIEF ${PROJECT_DESCRIPTION})
+            set(DOXYGEN_PROJECT_VERSION ${PROJECT_VERSION})
+            set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs)
+    
+            doxygen_add_docs(${PROJECT_NAME}_docs
+                ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+                COMMENT "Generating documentation for ${PROJECT_NAME}"
+            )
+        else()
+            message(WARNING "Doxygen not found. Documentation will not be built.")
+        endif()
     endif()
+
 endif()
 
 #########################################################################
@@ -134,9 +145,10 @@ endif()
 #########################################################################
 
 # Only enable testing if this is the main project and testing is explicitly requested
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+include(CTest)
+if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     enable_testing()
-    message(STATUS "Testing is enabled for ${PROJECT_NAME}")
+    message(STATUS "Testing is enabled.")
     add_subdirectory(test)
 endif()
 
@@ -144,66 +156,70 @@ endif()
 # Installation                                                          #
 #########################################################################
 
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+if(PROJECT_IS_TOP_LEVEL)
 
-set(CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-
-# Install targets
-install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}-targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT Runtime
-        NAMELINK_COMPONENT Development
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+    
+    set(CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+    
+    # Install targets
+    install(TARGETS ${PROJECT_NAME}
+        EXPORT ${PROJECT_NAME}-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT Runtime
+            NAMELINK_COMPONENT Development
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT Development
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT Runtime
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    
+    # Install headers
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         COMPONENT Development
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT Runtime
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+    )
+    
+    # Install targets file
+    install(EXPORT ${PROJECT_NAME}-targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CONFIG_INSTALL_DIR}
+        COMPONENT Development
+    )
+    
+    # Create package config file
+    configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+        INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
+    )
+    
+    # Create package version file
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+    
+    # Install config files
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        DESTINATION ${CONFIG_INSTALL_DIR}
+        COMPONENT Development
+    )
+    
+    # Export targets from build tree
+    export(EXPORT ${PROJECT_NAME}-targets
+        FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+    )
+    
+    # Register package in user's package registry
+    export(PACKAGE ${PROJECT_NAME})
 
-# Install headers
-install(DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    COMPONENT Development
-    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
-)
-
-# Install targets file
-install(EXPORT ${PROJECT_NAME}-targets
-    FILE ${PROJECT_NAME}Targets.cmake
-    NAMESPACE ${PROJECT_NAME}::
-    DESTINATION ${CONFIG_INSTALL_DIR}
-    COMPONENT Development
-)
-
-# Create package config file
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
-)
-
-# Create package version file
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-# Install config files
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-    DESTINATION ${CONFIG_INSTALL_DIR}
-    COMPONENT Development
-)
-
-# Export targets from build tree
-export(EXPORT ${PROJECT_NAME}-targets
-    FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
-    NAMESPACE ${PROJECT_NAME}::
-)
-
-# Register package in user's package registry
-export(PACKAGE ${PROJECT_NAME})
+endif()
